@@ -102,7 +102,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
-          (context, index) {
+              (context, index) {
             final folder = state.folders[index];
             return Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
@@ -156,7 +156,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return const SliverToBoxAdapter(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 40),
-          child: Center(child: Text('No scans yet. tap + to start.', style: TextStyle(fontWeight: FontWeight.bold))),
+          child: Center(child: Text('No scans yet', style: TextStyle(fontWeight: FontWeight.bold))),
         ),
       );
     }
@@ -164,7 +164,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
-          (context, index) {
+              (context, index) {
             final doc = state.recentDocuments[index];
             return Padding(
               padding: const EdgeInsets.only(bottom: 12.0),

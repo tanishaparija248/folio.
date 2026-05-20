@@ -38,13 +38,13 @@ class FolderListScreen extends StatelessWidget {
         child: folders.isEmpty
             ? const Center(child: Text('No folders yet.', style: TextStyle(fontWeight: FontWeight.bold)))
             : ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                itemCount: folders.length,
-                itemBuilder: (context, index) {
-                  final folder = folders[index];
-                  return _FolderCard(folder: folder);
-                },
-              ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          itemCount: folders.length,
+          itemBuilder: (context, index) {
+            final folder = folders[index];
+            return _FolderCard(folder: folder);
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddFolderDialog(context),

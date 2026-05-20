@@ -50,7 +50,7 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
       if (!mounted) return;
 
       final images = _pages!.map((p) => File(p.imagePath)).toList();
-      
+
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -58,12 +58,12 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
       );
 
       final pdfFile = await _pdfService.generatePdf(images, widget.document.name);
-      
+
       if (!mounted) return;
       Navigator.pop(context); // Close loading
 
       final result = await Share.shareXFiles([XFile(pdfFile.path)], text: 'Check out this document from Folio');
-      
+
       if (result.status == ShareResultStatus.success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Shared successfully!')),
@@ -110,10 +110,10 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
       body: _pages == null
           ? const Center(child: CircularProgressIndicator())
           : _pages!.isEmpty
-              ? const Center(child: Text('No pages found.'))
-              : _isReorderMode
-                  ? _buildReorderableList()
-                  : _buildGrid(),
+          ? const Center(child: Text('No pages found.'))
+          : _isReorderMode
+          ? _buildReorderableList()
+          : _buildGrid(),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addPages(context),
         child: const Icon(Icons.add_a_photo_outlined),
@@ -179,7 +179,7 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
           pageOrder: startOrder + i,
         ));
       }
-      
+
       if (context.mounted) Navigator.pop(context); // Close loading
       _loadPages(); // Refresh list
     } catch (e) {

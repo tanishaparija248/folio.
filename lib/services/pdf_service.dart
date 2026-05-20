@@ -22,7 +22,7 @@ class PdfService {
 
     final output = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
     final folioDir = Directory(p.join(output.path, 'Exports'));
-    
+
     if (!await folioDir.exists()) {
       await folioDir.create(recursive: true);
     }

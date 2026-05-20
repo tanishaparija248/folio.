@@ -21,7 +21,7 @@ class ScannerService {
   Future<File> saveImageToPermanentStorage(File image) async {
     final directory = await getApplicationDocumentsDirectory();
     final folioDir = Directory(p.join(directory.path, 'scans'));
-    
+
     if (!await folioDir.exists()) {
       await folioDir.create(recursive: true);
     }
@@ -34,19 +34,19 @@ class ScannerService {
   Future<String> getSmartName(File image) async {
     final inputImage = InputImage.fromFile(image);
     final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
-    
+
     String text = recognizedText.text.toLowerCase();
-    
+
     // Simple logic for smart naming as per vision
     if (text.contains('invoice') || text.contains('bill')) {
       if (text.contains('amazon')) return 'Amazon_Invoice';
       if (text.contains('google')) return 'Google_Bill';
       return 'Invoice';
     }
-    
+
     if (text.contains('passport')) return 'Passport_Scan';
     if (text.contains('id card')) return 'ID_Card';
-    
+
     return 'New_Document';
   }
 

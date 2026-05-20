@@ -31,14 +31,14 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
         emit(ScannerInitial());
         return;
       }
-      
+
       final updatedImages = [...currentImages, ...images];
-      
+
       String suggestedName = 'New Document';
       if (updatedImages.isNotEmpty) {
         suggestedName = await scannerService.getSmartName(updatedImages.first);
       }
-      
+
       emit(ScannerImagesPicked(images: updatedImages, suggestedName: suggestedName));
     } catch (e) {
       emit(ScannerError(e.toString()));
@@ -51,14 +51,14 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
     try {
       final image = await scannerService.pickImageFromCamera();
       if (image == null) return;
-      
+
       final updatedImages = [...currentImages, image];
-      
+
       String suggestedName = 'New Document';
       if (updatedImages.isNotEmpty) {
         suggestedName = await scannerService.getSmartName(updatedImages.first);
       }
-      
+
       emit(ScannerImagesPicked(images: updatedImages, suggestedName: suggestedName));
     } catch (e) {
       emit(ScannerError(e.toString()));
@@ -84,14 +84,14 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
     if (state is ScannerImagesPicked) {
       final currentState = state as ScannerImagesPicked;
       final updatedImages = List<File>.from(currentState.images);
-      
+
       int newIndex = event.newIndex;
       if (event.oldIndex < newIndex) {
         newIndex -= 1;
       }
       final File image = updatedImages.removeAt(event.oldIndex);
       updatedImages.insert(newIndex, image);
-      
+
       emit(ScannerImagesPicked(
         images: updatedImages,
         suggestedName: currentState.suggestedName,
@@ -104,7 +104,7 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
       final currentState = state as ScannerImagesPicked;
       final updatedImages = List<File>.from(currentState.images);
       updatedImages[event.index] = event.newImage;
-      
+
       emit(ScannerImagesPicked(
         images: updatedImages,
         suggestedName: currentState.suggestedName,
@@ -118,7 +118,7 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
       emit(ScannerLoading());
       try {
         final docId = await repository.createDocument(event.folderId, event.name);
-        
+
         for (int i = 0; i < currentState.images.length; i++) {
           final permanentFile = await scannerService.saveImageToPermanentStorage(currentState.images[i]);
           await repository.addPage(PageModel(
@@ -127,7 +127,7 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
             pageOrder: i,
           ));
         }
-        
+
         emit(ScannerSaved());
       } catch (e) {
         emit(ScannerError(e.toString()));

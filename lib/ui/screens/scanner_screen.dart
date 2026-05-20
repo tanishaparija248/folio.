@@ -105,9 +105,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
                           title: Text(folder.name),
                           onTap: () {
                             context.read<ScannerBloc>().add(SaveDocument(
-                                  name: _nameController.text,
-                                  folderId: folder.id!,
-                                ));
+                              name: _nameController.text,
+                              folderId: folder.id!,
+                            ));
                             Navigator.pop(ctx);
                           },
                         );
