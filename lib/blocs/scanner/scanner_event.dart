@@ -16,6 +16,7 @@ class ResetScanner extends ScannerEvent {}
 
 class RemoveImage extends ScannerEvent {
   final int index;
+
   const RemoveImage(this.index);
 
   @override
@@ -25,6 +26,7 @@ class RemoveImage extends ScannerEvent {
 class ReorderImages extends ScannerEvent {
   final int oldIndex;
   final int newIndex;
+
   const ReorderImages(this.oldIndex, this.newIndex);
 
   @override
@@ -34,6 +36,7 @@ class ReorderImages extends ScannerEvent {
 class UpdateImage extends ScannerEvent {
   final int index;
   final File newImage;
+
   const UpdateImage(this.index, this.newImage);
 
   @override
@@ -43,7 +46,11 @@ class UpdateImage extends ScannerEvent {
 class SaveDocument extends ScannerEvent {
   final String name;
   final int folderId;
-  const SaveDocument({required this.name, required this.folderId});
+
+  const SaveDocument({
+    required this.name,
+    required this.folderId,
+  });
 
   @override
   List<Object?> get props => [name, folderId];

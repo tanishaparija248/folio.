@@ -22,11 +22,13 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
     );
   }
 
+  // ================= CREATE =================
   Future _createDB(Database db, int version) async {
     await db.execute('''
       CREATE TABLE folders (
@@ -42,6 +44,7 @@ class DatabaseHelper {
         folderId INTEGER NOT NULL,
         name TEXT NOT NULL,
         createdAt TEXT NOT NULL,
+        ocrText TEXT,
         FOREIGN KEY (folderId) REFERENCES folders (id) ON DELETE CASCADE
       )
     ''');
@@ -57,14 +60,22 @@ class DatabaseHelper {
       )
     ''');
 
-    // Insert a default "Uncategorized" folder
     await db.insert('folders', {
       'name': 'Uncategorized',
       'createdAt': DateTime.now().toIso8601String(),
     });
   }
 
-  // Folder CRUD
+  // ================= UPGRADE =================
+  Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE documents ADD COLUMN ocrText TEXT',
+      );
+    }
+  }
+
+  // ================= FOLDERS =================
   Future<int> insertFolder(Folder folder) async {
     final db = await instance.database;
     return await db.insert('folders', folder.toMap());
@@ -72,11 +83,33 @@ class DatabaseHelper {
 
   Future<List<Folder>> getAllFolders() async {
     final db = await instance.database;
-    final result = await db.query('folders', orderBy: 'createdAt DESC');
+    final result =
+    await db.query('folders', orderBy: 'createdAt DESC');
     return result.map((json) => Folder.fromMap(json)).toList();
   }
 
-  // Document CRUD
+  Future<int> deleteFolder(int id) async {
+    final db = await instance.database;
+    return await db.delete(
+      'folders',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // ⭐ NEW: RENAME FOLDER
+  Future<int> renameFolder(int id, String newName) async {
+    final db = await instance.database;
+
+    return await db.update(
+      'folders',
+      {'name': newName},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // ================= DOCUMENTS =================
   Future<int> insertDocument(Document doc) async {
     final db = await instance.database;
     return await db.insert('documents', doc.toMap());
@@ -112,16 +145,19 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> deleteFolder(int id) async {
+  // ⭐ NEW: RENAME DOCUMENT
+  Future<int> renameDocument(int id, String newName) async {
     final db = await instance.database;
-    return await db.delete(
-      'folders',
+
+    return await db.update(
+      'documents',
+      {'name': newName},
       where: 'id = ?',
       whereArgs: [id],
     );
   }
 
-  // Page CRUD
+  // ================= PAGES =================
   Future<int> insertPage(PageModel page) async {
     final db = await instance.database;
     return await db.insert('pages', page.toMap());

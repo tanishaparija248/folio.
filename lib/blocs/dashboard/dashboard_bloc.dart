@@ -11,6 +11,10 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     on<AddFolder>(_onAddFolder);
     on<DeleteDocument>(_onDeleteDocument);
     on<DeleteFolder>(_onDeleteFolder);
+
+    // ✅ NEW HANDLERS
+    on<RenameFolder>(_onRenameFolder);
+    on<RenameDocument>(_onRenameDocument);
   }
 
   Future<void> _onLoadDashboard(
@@ -61,6 +65,32 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       ) async {
     try {
       await repository.deleteFolder(event.id);
+      add(LoadDashboard());
+    } catch (e) {
+      emit(DashboardError(e.toString()));
+    }
+  }
+
+  // ✅ NEW: Rename Folder
+  Future<void> _onRenameFolder(
+      RenameFolder event,
+      Emitter<DashboardState> emit,
+      ) async {
+    try {
+      await repository.renameFolder(event.id, event.newName);
+      add(LoadDashboard());
+    } catch (e) {
+      emit(DashboardError(e.toString()));
+    }
+  }
+
+  // ✅ NEW: Rename Document
+  Future<void> _onRenameDocument(
+      RenameDocument event,
+      Emitter<DashboardState> emit,
+      ) async {
+    try {
+      await repository.renameDocument(event.id, event.newName);
       add(LoadDashboard());
     } catch (e) {
       emit(DashboardError(e.toString()));

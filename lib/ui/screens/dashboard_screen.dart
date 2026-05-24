@@ -22,6 +22,11 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final ScrollController _scrollController = ScrollController();
 
+  static const Color primaryColor = Color(0xFF7C5CFC);
+  static const Color accentColor = Color(0xFF1F1B2E);
+  static const Color headingText = Colors.white;
+  static const Color subtitleText = Color(0xFFA6A0C2);
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -30,85 +35,137 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: const Text(
-          'Folio',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 26, letterSpacing: -1.5, color: Colors.black),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF12101C),
+            Color(0xFF181424),
+            Color(0xFF0F0B18),
+          ],
         ),
-        centerTitle: false,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: BlocBuilder<DashboardBloc, DashboardState>(
-        builder: (context, state) {
-          if (state is DashboardInitial || state is DashboardLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state is DashboardError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(state.message, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  TextButton(
-                    onPressed: () => context.read<DashboardBloc>().add(LoadDashboard()),
-                    child: const Text('Retry'),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          centerTitle: false,
+          titleSpacing: 20,
+
+          title: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+
+            children: [
+
+              Text(
+                'Folio',
+                textAlign: TextAlign.left,
+
+                style: TextStyle(
+                  fontSize: 32,
+                  color: Colors.white,
+                ),
+              ),
+
+              SizedBox(height: 1),
+
+              Text(
+                'Scan smarter, organize faster',
+                textAlign: TextAlign.left,
+
+                style: TextStyle(
+                  color: Color(0xFFA6A0C2),
+                  fontSize: 13,
+
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        body: BlocBuilder<DashboardBloc, DashboardState>(
+          builder: (context, state) {
+            if (state is DashboardLoading || state is DashboardInitial) {
+              return const Center(
+                child: CircularProgressIndicator(color: primaryColor),
+              );
+            }
+
+            if (state is DashboardError) {
+              return Center(
+                child: Text(state.message,
+                    style: const TextStyle(color: subtitleText)),
+              );
+            }
+
+            if (state is DashboardLoaded) {
+              return CustomScrollView(
+                controller: _scrollController,
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  _buildHeader(
+                    'Folders (${state.folders.length})',
+                    onAdd: () => _showAddFolderDialog(context),
                   ),
+
+                  _buildFolderList(state),
+
+                  _buildHeader('Recent Documents'),
+
+                  _buildRecentList(state),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
+              );
+            }
+
+            return const SizedBox();
+          },
+        ),
+
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: primaryColor,
+          onPressed: () {
+            context.read<ScannerBloc>().add(ResetScanner());
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ScannerScreen(),
               ),
             );
-          }
-          if (state is DashboardLoaded) {
-            return CustomScrollView(
-              controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                _buildHeader('Folders (${state.folders.length})', onAdd: () => _showAddFolderDialog(context)),
-                _buildFolderList(state),
-                _buildHeader('Recent Documents'),
-                _buildRecentList(state),
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
-              ],
-            );
-          }
-          return const Center(child: Text('Initializing...'));
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          context.read<ScannerBloc>().add(ResetScanner());
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ScannerScreen()),
-          );
-        },
-        backgroundColor: const Color(0xFF673AB7),
-        label: const Text('New Scan', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        icon: const Icon(Icons.document_scanner_rounded, color: Colors.white),
+          },
+          icon: const Icon(Icons.document_scanner),
+          label: const Text("New Scan"),
+        ),
       ),
     );
   }
 
+  // ---------------- HEADER ----------------
+
   Widget _buildHeader(String title, {VoidCallback? onAdd}) {
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-      sliver: SliverToBoxAdapter(
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.black),
-            ),
+            Text(title,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold)),
             if (onAdd != null)
               IconButton(
                 onPressed: onAdd,
-                icon: const Icon(Icons.create_new_folder_outlined, color: Colors.black),
+                icon: const Icon(Icons.add, color: primaryColor),
               ),
           ],
         ),
@@ -116,97 +173,117 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // ---------------- FOLDERS ----------------
+
   Widget _buildFolderList(DashboardLoaded state) {
-    if (state.folders.isEmpty) {
-      return const SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Text('No folders yet.', style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold)),
-        ),
-      );
-    }
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final folder = state.folders[index];
-            return FolderListTile(
-              folder: folder,
-              onTap: () => Navigator.push(
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+            (context, index) {
+          final folder = state.folders[index];
+
+          return FolderListTile(
+            folder: folder,
+
+            onTap: () {
+              Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => DocumentsByFolderScreen(folder: folder)),
-              ),
-              onDelete: () => context.read<DashboardBloc>().add(DeleteFolder(folder.id!)),
-            );
-          },
-          childCount: state.folders.length,
-        ),
+                MaterialPageRoute(
+                  builder: (_) =>
+                      DocumentsByFolderScreen(folder: folder),
+                ),
+              );
+            },
+
+            onDelete: () {
+              context.read<DashboardBloc>().add(
+                DeleteFolder(folder.id!),
+              );
+            },
+
+            onRename: (newName) {
+              context.read<DashboardBloc>().add(
+                RenameFolder(folder.id!, newName),
+              );
+            },
+          );
+        },
+        childCount: state.folders.length,
       ),
     );
   }
 
+  // ---------------- RECENT DOCUMENTS ----------------
+
   Widget _buildRecentList(DashboardLoaded state) {
-    if (state.recentDocuments.isEmpty) {
-      return const SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 40),
-          child: Center(child: Text('No scans yet. tap "New Scan" to start.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black45))),
-        ),
-      );
-    }
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final doc = state.recentDocuments[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: Hero(
-                tag: 'doc_${doc.id}',
-                child: DocumentListTile(
-                  doc: doc,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DocumentDetailScreen(
-                        document: doc,
-                        repository: context.read<DocumentRepository>(),
-                      ),
-                    ),
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+            (context, index) {
+          final doc = state.recentDocuments[index];
+
+          return DocumentListTile(
+            doc: doc,
+
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DocumentDetailScreen(
+                    document: doc,
+                    repository:
+                    context.read<DocumentRepository>(),
                   ),
-                  onDelete: () => context.read<DashboardBloc>().add(DeleteDocument(doc.id!)),
                 ),
-              ),
-            );
-          },
-          childCount: state.recentDocuments.length,
-        ),
+              );
+            },
+
+            onDelete: () {
+              context.read<DashboardBloc>().add(
+                DeleteDocument(doc.id!),
+              );
+            },
+
+            onRename: (newName) {
+              context.read<DashboardBloc>().add(
+                RenameDocument(doc.id!, newName),
+              );
+            },
+          );
+        },
+        childCount: state.recentDocuments.length,
       ),
     );
   }
+
+  // ---------------- ADD FOLDER DIALOG ----------------
 
   void _showAddFolderDialog(BuildContext context) {
     final controller = TextEditingController();
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('New Folder'),
-        content: TextField(controller: controller, autofocus: true, decoration: const InputDecoration(hintText: 'Folder Name')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                context.read<DashboardBloc>().add(AddFolder(controller.text));
-                Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Create'),
-          ),
-        ],
-      ),
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text("New Folder"),
+          content: TextField(controller: controller),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                if (controller.text.isNotEmpty) {
+                  context.read<DashboardBloc>().add(
+                    AddFolder(controller.text),
+                  );
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text("Create"),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -6,8 +6,9 @@ import '../../blocs/scanner/scanner_state.dart';
 import '../../blocs/dashboard/dashboard_bloc.dart';
 import '../../blocs/dashboard/dashboard_event.dart';
 import '../../blocs/dashboard/dashboard_state.dart';
-import 'studio_screen.dart';
-import 'dart:io';
+
+const Color primaryColor = Color(0xFF5B67FF);
+const Color subtitleColor = Color(0xFFA6A0C2);
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -33,56 +34,83 @@ class _ScannerScreenState extends State<ScannerScreen> {
         if (state is ScannerImagesPicked) {
           _nameController.text = state.suggestedName;
         }
+
         if (state is ScannerSaved) {
           context.read<DashboardBloc>().add(LoadDashboard());
           Navigator.pop(context);
+
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Document Saved Successfully')),
+            const SnackBar(
+              backgroundColor: primaryColor,
+              content: Text('Document Saved Successfully'),
+            ),
           );
         }
+
         if (state is ScannerError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message)),
           );
         }
       },
+
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: const Color(0xFF12101C),
+
           appBar: AppBar(
-            title: Text(_isReorderMode ? 'Reorder Pages' : 'Review Scans'),
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black,
+            backgroundColor: Colors.transparent,
             elevation: 0,
+            foregroundColor: Colors.white,
+            title: Text(
+              _isReorderMode ? 'Reorder Pages' : 'Review Scans',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+
             actions: [
               if (state is ScannerImagesPicked) ...[
                 IconButton(
-                  icon: Icon(_isReorderMode ? Icons.grid_view : Icons.reorder),
-                  onPressed: () => setState(() => _isReorderMode = !_isReorderMode),
-                  tooltip: _isReorderMode ? 'Grid View' : 'Reorder View',
+                  icon: Icon(
+                    _isReorderMode
+                        ? Icons.grid_view_rounded
+                        : Icons.reorder_rounded,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isReorderMode = !_isReorderMode;
+                    });
+                  },
                 ),
+
                 IconButton(
-                  icon: const Icon(Icons.check),
+                  icon: const Icon(Icons.check_rounded),
                   onPressed: () => _showFolderSelection(context),
                 ),
-              ]
+              ],
             ],
           ),
+
           body: _ScannerBody(
             state: state,
             nameController: _nameController,
             isReorderMode: _isReorderMode,
           ),
+
           floatingActionButton: _ScannerActions(state: state),
         );
       },
     );
   }
 
+  // ================= FOLDER SELECTION =================
   void _showFolderSelection(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: const Color(0xFF1F1B2E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+
       builder: (ctx) {
         return BlocBuilder<DashboardBloc, DashboardState>(
           builder: (context, state) {
@@ -91,23 +119,48 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text('Select Folder', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    padding: EdgeInsets.all(18),
+                    child: Text(
+                      'Select Folder',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
                   ),
-                  const Divider(),
+
+                  const Divider(color: Color(0xFF312A46)),
+
                   Expanded(
                     child: ListView.builder(
                       itemCount: state.folders.length,
                       itemBuilder: (ctx, index) {
                         final folder = state.folders[index];
+
                         return ListTile(
-                          leading: const Icon(Icons.folder, color: Colors.blue),
-                          title: Text(folder.name),
+                          leading: const Icon(
+                            Icons.folder_rounded,
+                            color: primaryColor,
+                          ),
+                          title: Text(
+                            folder.name,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+
                           onTap: () {
-                            context.read<ScannerBloc>().add(SaveDocument(
+                            final scannerState =
+                                context.read<ScannerBloc>().state;
+
+                            if (scannerState is ScannerImagesPicked) {
+                              context.read<ScannerBloc>().add(
+                                SaveDocument(
                                   name: _nameController.text,
                                   folderId: folder.id!,
-                                ));
+                                ),
+                              );
+                            }
+
                             Navigator.pop(ctx);
                           },
                         );
@@ -117,7 +170,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 ],
               );
             }
-            return const Center(child: CircularProgressIndicator());
+
+            return const Center(
+              child: CircularProgressIndicator(color: primaryColor),
+            );
           },
         );
       },
@@ -125,12 +181,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 }
 
+// ================= SCANNER BODY =================
 class _ScannerBody extends StatelessWidget {
   final ScannerState state;
   final TextEditingController nameController;
   final bool isReorderMode;
 
   const _ScannerBody({
+    super.key,
     required this.state,
     required this.nameController,
     required this.isReorderMode,
@@ -138,184 +196,83 @@ class _ScannerBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state is ScannerLoading) return const Center(child: CircularProgressIndicator());
+    if (state is ScannerLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: primaryColor),
+      );
+    }
 
     if (state is ScannerImagesPicked) {
       final pickedState = state as ScannerImagesPicked;
+
       return Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: TextField(
               controller: nameController,
-              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-              decoration: InputDecoration(
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
                 labelText: 'Document Name',
-                labelStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.edit_note, color: Colors.black),
-                filled: true,
-                fillColor: Colors.grey[50],
+                labelStyle: TextStyle(color: subtitleColor),
               ),
             ),
           ),
+
           Expanded(
-            child: isReorderMode
-                ? _ReorderablePageList(images: pickedState.images)
-                : _PageGrid(images: pickedState.images),
+            child: GridView.builder(
+              itemCount: pickedState.images.length,
+              gridDelegate:
+              const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemBuilder: (context, index) {
+                return Image.file(pickedState.images[index]);
+              },
+            ),
           ),
         ],
       );
     }
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.document_scanner_outlined, size: 80, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
-          const SizedBox(height: 16),
-          const Text(
-            'No images picked yet',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-        ],
+    return const Center(
+      child: Text(
+        'No scans yet',
+        style: TextStyle(color: Colors.white),
       ),
     );
   }
 }
 
-class _PageGrid extends StatelessWidget {
-  final List<File> images;
-  const _PageGrid({required this.images});
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.8,
-      ),
-      itemCount: images.length,
-      itemBuilder: (context, index) {
-        return GestureDetector(
-          onTap: () async {
-            final editedImage = await Navigator.push<File>(
-              context,
-              MaterialPageRoute(builder: (context) => StudioScreen(image: images[index])),
-            );
-            if (editedImage != null && context.mounted) {
-              context.read<ScannerBloc>().add(UpdateImage(index, editedImage));
-            }
-          },
-          child: Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.file(images[index], fit: BoxFit.cover, width: double.infinity, height: double.infinity),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: GestureDetector(
-                  onTap: () => context.read<ScannerBloc>().add(RemoveImage(index)),
-                  child: CircleAvatar(
-                    radius: 14,
-                    backgroundColor: Colors.black.withValues(alpha: 0.5),
-                    child: const Icon(Icons.close, size: 18, color: Colors.white),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 8,
-                left: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(8)),
-                  child: Text('Page ${index + 1}', style: const TextStyle(color: Colors.white, fontSize: 12)),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _ReorderablePageList extends StatelessWidget {
-  final List<File> images;
-  const _ReorderablePageList({required this.images});
-
-  @override
-  Widget build(BuildContext context) {
-    return ReorderableListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: images.length,
-      onReorder: (oldIndex, newIndex) {
-        context.read<ScannerBloc>().add(ReorderImages(oldIndex, newIndex));
-      },
-      itemBuilder: (context, index) {
-        return Padding(
-          key: ValueKey(images[index].path),
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                )
-              ],
-            ),
-            child: ListTile(
-              leading: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(images[index], width: 50, height: 50, fit: BoxFit.cover),
-              ),
-              title: Text(
-                'Page ${index + 1}',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-              ),
-              trailing: const Icon(Icons.drag_handle, color: Colors.black),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
+// ================= SCANNER ACTIONS =================
 class _ScannerActions extends StatelessWidget {
   final ScannerState state;
-  const _ScannerActions({required this.state});
+
+  const _ScannerActions({super.key, required this.state});
 
   @override
   Widget build(BuildContext context) {
-    if (state is! ScannerImagesPicked && state is! ScannerInitial) return const SizedBox.shrink();
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        FloatingActionButton.extended(
-          onPressed: () => context.read<ScannerBloc>().add(PickImages()),
+        FloatingActionButton(
           heroTag: 'gallery',
-          label: const Text('Gallery'),
-          icon: const Icon(Icons.photo_library_outlined),
+          onPressed: () {
+            context.read<ScannerBloc>().add(PickImages());
+          },
+          child: const Icon(Icons.photo_library),
         ),
+
         const SizedBox(height: 12),
-        FloatingActionButton.extended(
-          onPressed: () => context.read<ScannerBloc>().add(TakePhoto()),
+
+        FloatingActionButton(
           heroTag: 'camera',
-          label: const Text('Camera'),
-          icon: const Icon(Icons.camera_alt_outlined),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          onPressed: () {
+            context.read<ScannerBloc>().add(TakePhoto());
+          },
+          child: const Icon(Icons.camera_alt),
         ),
       ],
     );

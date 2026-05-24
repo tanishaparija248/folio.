@@ -1,14 +1,16 @@
 import 'dart:io';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../models/document_model.dart';
 import '../../models/page_model.dart';
 import '../../repositories/document_repository.dart';
 import '../../services/pdf_service.dart';
-import 'studio_screen.dart';
 import '../../services/scanner_service.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'studio_screen.dart';
 
 class DocumentDetailScreen extends StatefulWidget {
   final Document document;
@@ -21,13 +23,24 @@ class DocumentDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<DocumentDetailScreen> createState() => _DocumentDetailScreenState();
+  State<DocumentDetailScreen> createState() =>
+      _DocumentDetailScreenState();
 }
 
-class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
+class _DocumentDetailScreenState
+    extends State<DocumentDetailScreen> {
+
   final PdfService _pdfService = PdfService();
+
   bool _isReorderMode = false;
+
   List<PageModel>? _pages;
+
+  static const Color primaryColor =
+  Color(0xFF6C63FF);
+
+  static const Color backgroundColor =
+  Color(0xFF0F172A);
 
   @override
   void initState() {
@@ -36,7 +49,11 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
   }
 
   Future<void> _loadPages() async {
-    final pages = await widget.repository.getPages(widget.document.id!);
+    final pages =
+    await widget.repository.getPages(
+      widget.document.id!,
+    );
+
     if (mounted) {
       setState(() {
         _pages = pages;
@@ -44,36 +61,99 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
     }
   }
 
-  Future<void> _exportAndShare() async {
+  /// OCR FUNCTION
+  Future<void> _extractText(
+      String imagePath) async {
     try {
-      if (_pages == null || _pages!.isEmpty) return;
+      final inputImage =
+      InputImage.fromFilePath(
+        imagePath,
+      );
+
+      final textRecognizer =
+      TextRecognizer();
+
+      final RecognizedText
+      recognizedText =
+      await textRecognizer
+          .processImage(
+        inputImage,
+      );
+
+      await textRecognizer.close();
+
       if (!mounted) return;
 
-      final images = _pages!.map((p) => File(p.imagePath)).toList();
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text(
+            "Extracted Text",
+          ),
+          content:
+          SingleChildScrollView(
+            child: Text(
+              recognizedText.text
+                  .isEmpty
+                  ? "No text found"
+                  : recognizedText.text,
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content: Text('$e'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _exportAndShare() async {
+    try {
+      if (_pages == null ||
+          _pages!.isEmpty) return;
+
+      final images = _pages!
+          .map((p) => File(p.imagePath))
+          .toList();
 
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (_) => const Center(
+          child:
+          CircularProgressIndicator(),
+        ),
       );
 
-      final pdfFile = await _pdfService.generatePdf(images, widget.document.name);
+      final pdfFile =
+      await _pdfService.generatePdf(
+        images,
+        widget.document.name,
+      );
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading
 
-      final result = await Share.shareXFiles([XFile(pdfFile.path)], text: 'Check out this document from Folio');
+      Navigator.pop(context);
 
-      if (result.status == ShareResultStatus.success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Shared successfully!')),
-        );
-      }
+      await Share.shareXFiles(
+        [XFile(pdfFile.path)],
+        text:
+        'Check out this document from Folio',
+      );
     } catch (e) {
       if (!mounted) return;
+
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content: Text('$e'),
+        ),
       );
     }
   }
@@ -81,204 +161,516 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(widget.document.name),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(_isReorderMode ? Icons.grid_view : Icons.reorder),
-            onPressed: () => setState(() => _isReorderMode = !_isReorderMode),
+      backgroundColor:
+      Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end:
+            Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F172A),
+              Color(0xFF111827),
+              Color(0xFF020617),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.share_outlined),
-            onPressed: _exportAndShare,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+
+              /// APP BAR
+              Padding(
+                padding:
+                const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+
+                    IconButton(
+                      onPressed: () =>
+                          Navigator.pop(
+                              context),
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                      ),
+                    ),
+
+                    Expanded(
+                      child: Text(
+                        widget.document.name,
+                        overflow:
+                        TextOverflow
+                            .ellipsis,
+                        style:
+                        const TextStyle(
+                          color:
+                          Colors.white,
+                          fontSize: 24,
+                          fontWeight:
+                          FontWeight
+                              .bold,
+                        ),
+                      ),
+                    ),
+
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _isReorderMode =
+                          !_isReorderMode;
+                        });
+                      },
+                      icon: Icon(
+                        _isReorderMode
+                            ? Icons
+                            .grid_view_rounded
+                            : Icons
+                            .reorder_rounded,
+                        color:
+                        Colors.white,
+                      ),
+                    ),
+
+                    IconButton(
+                      onPressed:
+                      _exportAndShare,
+                      icon: const Icon(
+                        Icons.share,
+                        color:
+                        Colors.white,
+                      ),
+                    ),
+
+                    IconButton(
+                      onPressed:
+                          () async {
+
+                        if (_pages ==
+                            null) return;
+
+                        final images =
+                        _pages!
+                            .map(
+                              (p) =>
+                              File(
+                                p.imagePath,
+                              ),
+                        )
+                            .toList();
+
+                        final pdfFile =
+                        await _pdfService
+                            .generatePdf(
+                          images,
+                          widget
+                              .document
+                              .name,
+                        );
+
+                        await OpenFilex
+                            .open(
+                          pdfFile.path,
+                        );
+                      },
+                      icon: const Icon(
+                        Icons
+                            .picture_as_pdf,
+                        color:
+                        Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              /// BODY
+              Expanded(
+                child: _pages == null
+                    ? const Center(
+                  child:
+                  CircularProgressIndicator(
+                    color:
+                    primaryColor,
+                  ),
+                )
+                    : _pages!.isEmpty
+                    ? const Center(
+                  child: Text(
+                    'No Pages Found',
+                    style:
+                    TextStyle(
+                      color:
+                      Colors
+                          .white,
+                    ),
+                  ),
+                )
+                    : _isReorderMode
+                    ? _buildReorderableList()
+                    : _buildGrid(),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            onPressed: () async {
-              if (_pages == null) return;
-              final images = _pages!.map((p) => File(p.imagePath)).toList();
-              final pdfFile = await _pdfService.generatePdf(images, widget.document.name);
-              await OpenFilex.open(pdfFile.path);
-            },
-          ),
-        ],
+        ),
       ),
-      body: _pages == null
-          ? const Center(child: CircularProgressIndicator())
-          : _pages!.isEmpty
-          ? const Center(child: Text('No pages found.'))
-          : _isReorderMode
-          ? _buildReorderableList()
-          : _buildGrid(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _addPages(context),
-        child: const Icon(Icons.add_a_photo_outlined),
+
+      floatingActionButton:
+      FloatingActionButton(
+        backgroundColor:
+        primaryColor,
+        onPressed: () =>
+            _addPages(context),
+        child: const Icon(
+          Icons.add_a_photo_outlined,
+          color: Colors.white,
+        ),
       ),
     );
   }
 
-  Future<void> _addPages(BuildContext context) async {
-    final scannerService = context.read<ScannerService>();
+  Future<void> _addPages(
+      BuildContext context) async {
 
-    final source = await showModalBottomSheet<String>(
+    final scannerService =
+    context.read<ScannerService>();
+
+    final source =
+    await showModalBottomSheet<
+        String>(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text('Add More Pages', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          ),
-          ListTile(
-            leading: const Icon(Icons.camera_alt_outlined),
-            title: const Text('Camera'),
-            onTap: () => Navigator.pop(ctx, 'camera'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_library_outlined),
-            title: const Text('Gallery'),
-            onTap: () => Navigator.pop(ctx, 'gallery'),
-          ),
-          const SizedBox(height: 20),
-        ],
+      backgroundColor:
+      const Color(0xFF1E293B),
+      shape:
+      const RoundedRectangleBorder(
+        borderRadius:
+        BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
       ),
+      builder: (ctx) {
+        return Column(
+          mainAxisSize:
+          MainAxisSize.min,
+          children: [
+
+            const SizedBox(height: 20),
+
+            const Text(
+              'Add More Pages',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight:
+                FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            ListTile(
+              leading: const Icon(
+                Icons.camera_alt,
+                color: Colors.white,
+              ),
+              title: const Text(
+                'Camera',
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+              onTap: () =>
+                  Navigator.pop(
+                    ctx,
+                    'camera',
+                  ),
+            ),
+
+            ListTile(
+              leading: const Icon(
+                Icons.photo_library,
+                color: Colors.white,
+              ),
+              title: const Text(
+                'Gallery',
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+              onTap: () =>
+                  Navigator.pop(
+                    ctx,
+                    'gallery',
+                  ),
+            ),
+
+            const SizedBox(height: 20),
+          ],
+        );
+      },
     );
 
     if (source == null) return;
 
     List<File> newImages = [];
+
     if (source == 'camera') {
-      final img = await scannerService.pickImageFromCamera();
-      if (img != null) newImages.add(img);
+      final img = await scannerService
+          .pickImageFromCamera();
+
+      if (img != null) {
+        newImages.add(img);
+      }
     } else {
-      newImages = await scannerService.pickImages();
+      newImages =
+      await scannerService
+          .pickImages();
     }
 
     if (newImages.isEmpty) return;
-    if (!context.mounted) return;
 
-    // Show loading
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+      builder: (_) => const Center(
+        child:
+        CircularProgressIndicator(),
+      ),
     );
 
     try {
-      final startOrder = _pages?.length ?? 0;
-      for (int i = 0; i < newImages.length; i++) {
-        final permanentFile = await scannerService.saveImageToPermanentStorage(newImages[i]);
-        await widget.repository.addPage(PageModel(
-          documentId: widget.document.id!,
-          imagePath: permanentFile.path,
-          pageOrder: startOrder + i,
-        ));
+      final startOrder =
+          _pages?.length ?? 0;
+
+      for (int i = 0;
+      i < newImages.length;
+      i++) {
+
+        final permanentFile =
+        await scannerService
+            .saveImageToPermanentStorage(
+          newImages[i],
+        );
+
+        await widget.repository.addPage(
+          PageModel(
+            documentId:
+            widget.document.id!,
+            imagePath:
+            permanentFile.path,
+            pageOrder:
+            startOrder + i,
+          ),
+        );
       }
 
-      if (context.mounted) Navigator.pop(context); // Close loading
-      _loadPages(); // Refresh list
-    } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error adding pages: $e')));
       }
+
+      _loadPages();
+    } catch (e) {
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content: Text('$e'),
+        ),
+      );
     }
   }
 
   Widget _buildGrid() {
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      padding:
+      const EdgeInsets.all(16),
+      gridDelegate:
+      const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.7,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+        childAspectRatio: 0.72,
       ),
       itemCount: _pages!.length,
-      itemBuilder: (context, index) {
+      itemBuilder:
+          (context, index) {
+
         final page = _pages![index];
+
         return Hero(
           tag: 'page_${page.id}',
           child: Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius:
+              BorderRadius.circular(
+                  22),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                )
+                  color: Colors.black
+                      .withOpacity(0.25),
+                  blurRadius: 12,
+                  offset:
+                  const Offset(0, 5),
+                ),
               ],
             ),
             child: Stack(
               children: [
+
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius:
+                  BorderRadius.circular(
+                      22),
                   child: Image.file(
                     File(page.imagePath),
                     fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
+                    width:
+                    double.infinity,
+                    height:
+                    double.infinity,
                   ),
                 ),
+
                 Positioned(
-                  top: 8,
-                  right: 8,
+                  top: 10,
+                  right: 10,
                   child: Row(
                     children: [
+
+                      /// OCR
                       GestureDetector(
                         onTap: () async {
-                          final File? editedImage = await Navigator.push(
+                          await _extractText(
+                            page.imagePath,
+                          );
+                        },
+                        child: Container(
+                          padding:
+                          const EdgeInsets
+                              .all(10),
+                          decoration:
+                          const BoxDecoration(
+                            color:
+                            Colors.white,
+                            shape:
+                            BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons
+                                .text_snippet_outlined,
+                            size: 18,
+                            color:
+                            Colors.black,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(
+                          width: 8),
+
+                      /// EDIT
+                      GestureDetector(
+                        onTap:
+                            () async {
+
+                          final File?
+                          editedImage =
+                          await Navigator
+                              .push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => StudioScreen(image: File(page.imagePath)),
+                              builder:
+                                  (context) =>
+                                  StudioScreen(
+                                    image: File(
+                                      page.imagePath,
+                                    ),
+                                  ),
                             ),
                           );
-                          if (editedImage != null) {
-                            final updatedPage = page.copyWith(imagePath: editedImage.path);
-                            await widget.repository.updatePage(updatedPage);
+
+                          if (editedImage !=
+                              null) {
+
+                            final updatedPage =
+                            page.copyWith(
+                              imagePath:
+                              editedImage
+                                  .path,
+                            );
+
+                            await widget
+                                .repository
+                                .updatePage(
+                              updatedPage,
+                            );
+
                             _loadPages();
                           }
                         },
-                        child: const CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.white,
-                          child: Icon(Icons.edit_outlined, size: 18, color: Colors.black),
+                        child: Container(
+                          padding:
+                          const EdgeInsets
+                              .all(10),
+                          decoration:
+                          const BoxDecoration(
+                            color:
+                            Colors.white,
+                            shape:
+                            BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons
+                                .edit_outlined,
+                            size: 18,
+                            color:
+                            Colors.black,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+
+                      const SizedBox(
+                          width: 8),
+
+                      /// DELETE
                       GestureDetector(
-                        onTap: () async {
-                          await widget.repository.deletePage(page.id!);
+                        onTap:
+                            () async {
+
+                          await widget
+                              .repository
+                              .deletePage(
+                            page.id!,
+                          );
+
                           _loadPages();
                         },
-                        child: CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.red.shade400,
-                          child: const Icon(Icons.delete_outline, size: 18, color: Colors.white),
+                        child: Container(
+                          padding:
+                          const EdgeInsets
+                              .all(10),
+                          decoration:
+                          BoxDecoration(
+                            color: Colors
+                                .redAccent,
+                            shape:
+                            BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons
+                                .delete_outline,
+                            size: 18,
+                            color:
+                            Colors.white,
+                          ),
                         ),
                       ),
                     ],
-                  ),
-                ),
-                Positioned(
-                  bottom: 8,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Page ${index + 1}',
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
                   ),
                 ),
               ],
@@ -291,49 +683,79 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
 
   Widget _buildReorderableList() {
     return ReorderableListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding:
+      const EdgeInsets.all(16),
       itemCount: _pages!.length,
-      onReorder: (oldIndex, newIndex) async {
+      onReorder:
+          (oldIndex, newIndex) async {
+
         setState(() {
           if (oldIndex < newIndex) {
             newIndex -= 1;
           }
-          final PageModel item = _pages!.removeAt(oldIndex);
-          _pages!.insert(newIndex, item);
+
+          final item =
+          _pages!.removeAt(oldIndex);
+
+          _pages!.insert(
+            newIndex,
+            item,
+          );
         });
-        // Update order in DB
-        for (int i = 0; i < _pages!.length; i++) {
-          final updatedPage = _pages![i].copyWith(pageOrder: i);
-          await widget.repository.updatePage(updatedPage);
+
+        for (int i = 0;
+        i < _pages!.length;
+        i++) {
+
+          final updatedPage =
+          _pages![i].copyWith(
+            pageOrder: i,
+          );
+
+          await widget.repository
+              .updatePage(updatedPage);
         }
       },
-      itemBuilder: (context, index) {
+      itemBuilder:
+          (context, index) {
+
         final page = _pages![index];
-        return Padding(
+
+        return Container(
           key: ValueKey(page.id),
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                )
-              ],
+          margin:
+          const EdgeInsets.only(
+              bottom: 12),
+          decoration: BoxDecoration(
+            color:
+            const Color(0xFF1E293B),
+            borderRadius:
+            BorderRadius.circular(
+                18),
+          ),
+          child: ListTile(
+            leading: ClipRRect(
+              borderRadius:
+              BorderRadius.circular(
+                  10),
+              child: Image.file(
+                File(page.imagePath),
+                width: 60,
+                height: 60,
+                fit: BoxFit.cover,
+              ),
             ),
-            child: ListTile(
-              leading: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(File(page.imagePath), width: 50, height: 50, fit: BoxFit.cover),
+            title: Text(
+              'Page ${index + 1}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight:
+                FontWeight.bold,
               ),
-              title: Text(
-                'Page ${index + 1}',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-              ),
-              trailing: const Icon(Icons.drag_handle, color: Colors.black),
+            ),
+            trailing: const Icon(
+              Icons.drag_handle,
+              color: Colors.white,
             ),
           ),
         );

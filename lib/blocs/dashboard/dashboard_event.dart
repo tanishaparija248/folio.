@@ -32,3 +32,25 @@ class DeleteFolder extends DashboardEvent {
   @override
   List<Object> get props => [id];
 }
+
+// ✅ NEW: Rename Folder
+class RenameFolder extends DashboardEvent {
+  final int id;
+  final String newName;
+
+  const RenameFolder(this.id, this.newName);
+
+  @override
+  List<Object> get props => [id, newName];
+}
+
+// ✅ NEW: Rename Document
+class RenameDocument extends DashboardEvent {
+  final int id;
+  final String newName;
+
+  const RenameDocument(this.id, this.newName);
+
+  @override
+  List<Object> get props => [id, newName];
+}
